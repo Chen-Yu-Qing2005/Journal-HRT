@@ -1,4 +1,4 @@
-# Journal HRT 11.9-hrt.1
+# Journal-HRT 11.9-hrt.1
 
 这是一个基于 Journal Android Multilingual 11.9 的 GPLv3 修改版，内置 HRT 常用药物扩展。
 
@@ -31,6 +31,8 @@
 
 扩展内容包含中文/英文说明、安全使用、不良反应、剂量阈值、化学信息和公开来源。
 
+完整药物、途径、参考 Cmax、Tmax 和半衰期表见 `PHARMACOKINETIC_PARAMETERS.md`。
+
 ## 本版功能
 
 - 血药浓度估算与拖动时间同步
@@ -54,7 +56,7 @@ Android 13 及以上需要授予通知权限。部分厂商系统还需要允许
 ## 许可证与来源
 
 - 上游：Journal Android Multilingual，GPLv3-only
-- 本修改版：Chen Yuqing
+- 修改维护：Chen Yuqing
 - 完整许可证见源码中的 `COPYING`
 - 源码：https://github.com/Chen-Yu-Qing2005/Journal-HRT
 
