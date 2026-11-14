@@ -1,4 +1,4 @@
-# Journal-HRT 11.9-hrt.2
+# Journal-HRT 1.0
 
 这是一个基于 Journal Android Multilingual 11.9 的 GPLv3 修改版，内置 HRT 常用药物扩展。
 
@@ -7,7 +7,7 @@
 - Android 8.0 及以上
 - 包名：`io.github.chenyuqing2005.journal`
 - 可与原 Journal 同时安装
-- 直接安装 `Journal-HRT-11.9-hrt.2.apk`
+- 直接安装 `Journal-HRT-1.0.apk`
 
 首次启动会自动安装内置扩展包，无需手动导入。
 
