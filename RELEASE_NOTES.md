@@ -1,9 +1,10 @@
-# Journal-HRT 11.9-hrt.1
+# Journal-HRT 11.9-hrt.2
 
 首个可分发的 Journal HRT 一体包。
 
 ## 主要变化
 
+- 浓度标签字号调整为原字号体系的 1.4 倍，并在接近边界时自动换行
 - 使用正式包名 `io.github.chenyuqing2005.journal`
 - 内置 13 个 HRT 物质扩展及中英文安全资料
 - 首次启动自动安装内置扩展包
