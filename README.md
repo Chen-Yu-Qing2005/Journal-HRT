@@ -1,4 +1,4 @@
-# Journal-HRT 1.0
+# Journal-HRT 1.1
 
 这是一个基于 Journal Android Multilingual 11.9 的 GPLv3 修改版，内置 HRT 常用药物扩展。
 
@@ -7,7 +7,7 @@
 - Android 8.0 及以上
 - 包名：`io.github.chenyuqing2005.journal`
 - 可与原 Journal 同时安装
-- 直接安装 `Journal-HRT-1.0.apk`
+- 直接安装 `Journal-HRT-1.1.apk`
 
 首次启动会自动安装内置扩展包，无需手动导入。
 
@@ -38,6 +38,7 @@
 - 血药浓度估算与拖动时间同步
 - `pg/mL`、`ng/mL`、`mg/mL`、`mg/L` 单位切换
 - 同一种物质的多次给药叠加为一个总估算值
+- 支持自定义两段零阶缓释片释放参数
 - 多种物质时浓度明细默认收起
 - 按单位限制小数位，极低浓度自动隐藏
 - 血药浓度阈值通知，默认峰值的 10%，可自定义
