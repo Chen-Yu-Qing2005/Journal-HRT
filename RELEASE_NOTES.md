@@ -1,10 +1,13 @@
-# Journal-HRT 1.0
+# Journal-HRT 1.1
 
 首个可分发的 Journal HRT 一体包。
 
 ## 主要变化
 
-- 用户可见版本号调整为 `1.0`；上游基础版本仍为 Journal Android Multilingual 11.9
+- 用户可见版本号为 `1.1`；上游基础版本仍为 Journal Android Multilingual 11.9
+- 新增两段零阶缓释片模型：前 x 分钟释放 y%，剩余部分在 z 分钟内释放
+- 缓释参数可在给药和编辑给药记录时填写，并通过数值卷积参与浓度估算
+- 数据库升级至 Room 9，旧记录自动迁移且保持兼容
 - 浓度标签字号调整为原字号体系的 1.4 倍，并在接近边界时自动换行
 - 使用正式包名 `io.github.chenyuqing2005.journal`
 - 内置 13 个 HRT 物质扩展及中英文安全资料
