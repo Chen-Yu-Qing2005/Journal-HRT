@@ -1,0 +1,117 @@
+{
+  "name": "4F-MPH",
+  "commonNames": [
+    "4F-MPH",
+    "4-FMPH",
+    "4-Fluoromethylphenidate",
+    "4f-mph",
+    "4-fmph",
+    "4fmph",
+    "4-fl-mph",
+    "4-fluoro-mph"
+  ],
+  "url": "https://psychonautwiki.org/wiki/4F-MPH",
+  "isApproved": true,
+  "crossTolerances": [],
+  "toxicities": [],
+  "categories": [
+    "stimulant",
+    "research-chemical",
+    "habit-forming",
+    "tentative"
+  ],
+  "interactions": {
+    "dangerous": [
+      "25x-NBOMe",
+      "25x-NBOH",
+      "Tramadol",
+      "maoi"
+    ],
+    "unsafe": [
+      "Dextromethorphan",
+      "MDMA",
+      "stimulant"
+    ],
+    "uncertain": [
+      "Alcohol",
+      "Methoxetamine",
+      "dissociative"
+    ]
+  },
+  "roas": [
+    {
+      "name": "insufflated",
+      "dose": {
+        "units": "mg",
+        "lightMin": 5,
+        "commonMin": 8,
+        "strongMin": 14,
+        "heavyMin": 20
+      },
+      "duration": {
+        "onset": {
+          "min": 10,
+          "max": 30,
+          "units": "minutes"
+        },
+        "peak": {
+          "min": 1,
+          "max": 2,
+          "units": "hours"
+        },
+        "offset": {
+          "min": 1,
+          "max": 2,
+          "units": "hours"
+        },
+        "total": {
+          "min": 3,
+          "max": 6,
+          "units": "hours"
+        },
+        "afterglow": {
+          "min": 4,
+          "max": 8,
+          "units": "hours"
+        }
+      }
+    },
+    {
+      "name": "oral",
+      "dose": {
+        "units": "mg",
+        "lightMin": 5,
+        "commonMin": 10,
+        "strongMin": 15,
+        "heavyMin": 20
+      },
+      "duration": {
+        "onset": {
+          "min": 30,
+          "max": 60,
+          "units": "minutes"
+        },
+        "peak": {
+          "min": 2,
+          "max": 4,
+          "units": "hours"
+        },
+        "offset": {
+          "min": 1,
+          "max": 2,
+          "units": "hours"
+        },
+        "total": {
+          "min": 4,
+          "max": 8,
+          "units": "hours"
+        },
+        "afterglow": {
+          "min": 5,
+          "max": 10,
+          "units": "hours"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,146 @@
+/*
+ * Copyright (c) 2024. Isaak Hanimann.
+ * This file is part of PsychonautWiki Journal.
+ *
+ * PsychonautWiki Journal is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * PsychonautWiki Journal is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PsychonautWiki Journal.  If not, see https://www.gnu.org/licenses/gpl-3.0.en.html.
+ */
+
+package com.isaakhanimann.journal.ui.tabs.settings.customunits.add
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import com.isaakhanimann.journal.data.substances.AdministrationRoute
+import com.isaakhanimann.journal.localization.i18n
+import com.isaakhanimann.journal.ui.tabs.journal.addingestion.route.AdministrationMethodChoice
+import com.isaakhanimann.journal.ui.tabs.journal.addingestion.route.AdministrationRoutePicker
+import com.isaakhanimann.journal.ui.tabs.journal.addingestion.route.ChooseRouteViewModel
+import com.isaakhanimann.journal.ui.tabs.journal.addingestion.route.CircularAdministrationMethodPicker
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChooseRouteDuringAddCustomUnitScreen(
+    onRouteChosen: (
+        targetSubstanceName: String,
+        administrationRoute: AdministrationRoute
+    ) -> Unit,
+    viewModel: ChooseRouteViewModel
+) {
+    ChooseRouteDuringAddCustomUnitContent(
+        title = i18n(
+            "substances_route",
+            replacements = mapOf(
+                "substance" to (
+                    viewModel.groupTitle
+                        ?: viewModel.substanceRepo.getDisplayName(viewModel.substanceName)
+                    )
+            )
+        ),
+        showOtherRoutes = viewModel.showOtherRoutes,
+        onChangeOfShowOtherRoutes = { viewModel.showOtherRoutes = it },
+        pwRoutes = viewModel.pwRoutes,
+        otherRoutesChunked = viewModel.otherRoutesChunked,
+        methodChoices = viewModel.methodChoices,
+        isGroupedMethodPicker = viewModel.isGroupedMethodPicker,
+        groupTitle = viewModel.groupTitle,
+        onChoiceChosen = { choice ->
+            onRouteChosen(choice.targetSubstanceName, choice.route)
+        },
+        onRouteChosen = { route ->
+            onRouteChosen(viewModel.substanceName, route)
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChooseRouteDuringAddCustomUnitContent(
+    title: String,
+    showOtherRoutes: Boolean,
+    onChangeOfShowOtherRoutes: (Boolean) -> Unit,
+    pwRoutes: List<AdministrationRoute>,
+    otherRoutesChunked: List<List<AdministrationRoute>>,
+    methodChoices: List<AdministrationMethodChoice> = emptyList(),
+    isGroupedMethodPicker: Boolean = false,
+    groupTitle: String? = null,
+    onChoiceChosen: (AdministrationMethodChoice) -> Unit = {},
+    onRouteChosen: (AdministrationRoute) -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    if (!isGroupedMethodPicker &&
+                        showOtherRoutes &&
+                        pwRoutes.isNotEmpty()
+                    ) {
+                        IconButton(onClick = { onChangeOfShowOtherRoutes(false) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = i18n("back")
+                            )
+                        }
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding)) {
+            if (isGroupedMethodPicker) {
+                CircularAdministrationMethodPicker(
+                    title = groupTitle ?: title,
+                    methods = methodChoices,
+                    onMethodTapped = onChoiceChosen,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                AdministrationRoutePicker(
+                    showOtherRoutes = showOtherRoutes,
+                    onChangeOfShowOtherRoutes = onChangeOfShowOtherRoutes,
+                    pwRoutes = pwRoutes,
+                    otherRoutesChunked = otherRoutesChunked,
+                    onRouteTapped = onRouteChosen
+                )
+            }
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun ChooseRouteDuringAddCustomUnitScreenPreview() {
+    val pwRoutes = listOf(AdministrationRoute.INSUFFLATED, AdministrationRoute.ORAL)
+    val otherRoutes = AdministrationRoute.entries.filterNot { it in pwRoutes }
+
+    ChooseRouteDuringAddCustomUnitContent(
+        title = "Route for Caffeine",
+        showOtherRoutes = false,
+        onChangeOfShowOtherRoutes = {},
+        pwRoutes = pwRoutes,
+        otherRoutesChunked = otherRoutes.chunked(2),
+        onRouteChosen = {}
+    )
+}

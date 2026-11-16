@@ -1,0 +1,180 @@
+/*
+ * Copyright (c) 2023. Isaak Hanimann.
+ * This file is part of PsychonautWiki Journal.
+ *
+ * PsychonautWiki Journal is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * PsychonautWiki Journal is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PsychonautWiki Journal.  If not, see https://www.gnu.org/licenses/gpl-3.0.en.html.
+ */
+
+package com.isaakhanimann.journal.ui.tabs.journal.experience.timeline.screen
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.isaakhanimann.journal.data.room.experiences.ExperienceRepository
+import com.isaakhanimann.journal.data.room.experiences.relations.IngestionWithCompanionAndCustomUnit
+import com.isaakhanimann.journal.data.substances.classes.roa.ConcentrationEstimator
+import com.isaakhanimann.journal.data.substances.classes.roa.ConcentrationModel
+import com.isaakhanimann.journal.data.substances.classes.roa.RoaDose
+import com.isaakhanimann.journal.data.substances.classes.roa.RoaDuration
+import com.isaakhanimann.journal.data.substances.repositories.SubstanceRepository
+import com.isaakhanimann.journal.ui.main.navigation.routes.TimelineScreenRoute
+import com.isaakhanimann.journal.ui.tabs.journal.experience.models.IngestionElement
+import com.isaakhanimann.journal.ui.tabs.settings.combinations.UserPreferences
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+
+@HiltViewModel(assistedFactory = TimelineScreenViewModel.Factory::class)
+class TimelineScreenViewModel @AssistedInject constructor(
+    experienceRepo: ExperienceRepository,
+    private val substanceRepo: SubstanceRepository,
+    private val userPreferences: UserPreferences,
+    @Assisted val route: TimelineScreenRoute
+) : ViewModel() {
+
+    private val experienceID = route.experienceId
+    val consumerName = route.consumerName
+
+    val ownerUserNameFlow = userPreferences.ownerUserNameFlow.stateIn(
+        initialValue = "You",
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000)
+    )
+
+    val areSubstanceHeightsIndependentFlow = userPreferences.areSubstanceHeightsIndependentFlow.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
+
+    val isOwnerUser = ownerUserNameFlow.map { it == consumerName }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ownerUserNameFlow.value == consumerName
+    )
+
+    private val ingestionsWithCompanionsFlow = experienceRepo.getIngestionsWithCompanionsFlow(
+        experienceID
+    )
+        .combine(isOwnerUser) { ingestions, isOwner ->
+            ingestions.filter {
+                if (!isOwner) {
+                    it.ingestion.consumerName == consumerName
+                } else {
+                    it.ingestion.consumerName ==
+                        null
+                }
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val ratingsFlow =
+        experienceRepo.getRatingsFlow(experienceID)
+            .stateIn(
+                initialValue = emptyList(),
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000)
+            )
+
+    val timedNotesFlow =
+        experienceRepo.getTimedNotesFlowSorted(experienceID)
+            .stateIn(
+                initialValue = emptyList(),
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000)
+            )
+
+    private val sortedIngestionsWithCompanionsFlow =
+        ingestionsWithCompanionsFlow.map { ingestionsWithCompanions ->
+            ingestionsWithCompanions.sortedBy { it.ingestion.time }
+        }
+
+    private data class IngestionWithAssociatedData(
+        val ingestionWithCompanionAndCustomUnit: IngestionWithCompanionAndCustomUnit,
+        val roaDuration: RoaDuration?,
+        val roaDose: RoaDose?,
+        val concentrationModel: ConcentrationModel?
+    )
+
+    private val ingestionsWithAssociatedDataFlow: Flow<List<IngestionWithAssociatedData>> =
+        sortedIngestionsWithCompanionsFlow.map { ingestionsWithComps ->
+            ingestionsWithComps.map { oneIngestionWithComp ->
+                val ingestion = oneIngestionWithComp.ingestion
+                val substance = substanceRepo.getSubstance(ingestion.substanceName)
+                val roa = substance?.getRoa(
+                    ingestion.administrationRoute,
+                    ingestion.releaseForm,
+                    ingestion.extendedReleaseProfile
+                )
+                val roaDuration = roa?.roaDuration
+                val baseRoaDuration = substance
+                    ?.getRoa(ingestion.administrationRoute)
+                    ?.roaDuration
+                IngestionWithAssociatedData(
+                    ingestionWithCompanionAndCustomUnit = oneIngestionWithComp,
+                    roaDuration = roaDuration,
+                    roaDose = roa?.roaDose,
+                    concentrationModel = ConcentrationEstimator.resolve(
+                        recordedModel = substance?.getConcentrationModel(
+                            ingestion.administrationRoute
+                        ),
+                        roaDuration = baseRoaDuration,
+                        ingestionDose = ingestion.dose,
+                        ingestionUnits = oneIngestionWithComp.originalUnit,
+                        fallbackEliminationEndHours = null,
+                        administrationRoute = ingestion.administrationRoute
+                    )
+                )
+            }
+        }
+
+    val ingestionElementsFlow = ingestionsWithAssociatedDataFlow.map {
+        getIngestionElements(it)
+    }.stateIn(
+        initialValue = emptyList(),
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000)
+    )
+
+    private fun getIngestionElements(
+        sortedIngestionsWith: List<IngestionWithAssociatedData>
+    ): List<IngestionElement> = sortedIngestionsWith.map { ingestionWith ->
+        val numDots =
+            ingestionWith.roaDose?.getNumDots(
+                ingestionWith.ingestionWithCompanionAndCustomUnit.ingestion.dose,
+                ingestionUnits = ingestionWith.ingestionWithCompanionAndCustomUnit.ingestion.units
+            )
+        IngestionElement(
+            ingestionWithCompanionAndCustomUnit = ingestionWith.ingestionWithCompanionAndCustomUnit,
+            roaDuration = ingestionWith.roaDuration,
+            roaDose = ingestionWith.roaDose,
+            numDots = numDots,
+            concentrationModel = ingestionWith.concentrationModel
+        )
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(route: TimelineScreenRoute): TimelineScreenViewModel
+    }
+}

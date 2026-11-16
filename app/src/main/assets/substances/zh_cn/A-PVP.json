@@ -1,0 +1,15 @@
+{
+  "tolerance": {
+    "full": "长期反复使用后形成",
+    "half": "3 - 7天",
+    "zero": "1 - 2周",
+    "halfToleranceInHours": 120,
+    "zeroToleranceInHours": 252
+  },
+  "addictionPotential": "高度成瘾且具有很高的滥用潜力",
+  "toxicities": [
+    "确切的中毒剂量未知"
+  ],
+  "localizedName": "A-PVP",
+  "summary": "⚠️ 警告哦： 始终要从低剂量开始尝试，因为每个人的体重、耐受度、代谢和敏感度都不一样呢。请务必查看 伤害减少措施 这一节喵。"
+}

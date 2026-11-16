@@ -1,0 +1,60 @@
+Journal-HRT User Agreement and Disclaimer
+Version date: 15 November 2026
+
+Read this agreement in full before using the app. Selecting "Agree and continue" confirms that you have read, understood, and accepted this entire agreement. If you do not agree, select "Disagree" and exit the app.
+
+Important purpose and prohibited uses
+1. Drug use and the misuse of prescription medicines, non-prescription medicines, controlled substances, or other chemicals are strictly prohibited. You must comply with all applicable laws and regulations in the People's Republic of China and in your jurisdiction.
+2. This software was not created to encourage, facilitate, or glamorize drug use or medication misuse. It does not provide methods for obtaining, manufacturing, trafficking, circumventing regulation, or abusing any substance.
+3. Its purpose is to help adult users keep lawful, compliant records of personal medication and observations, check for repeated dosing and potential interactions, learn from publicly available pharmacokinetic information, and use reminders to reduce forgetfulness, duplicate dosing, and misuse risk.
+4. If you experience substance misuse, dependence, overdose, or loss of control over medication use, stop the relevant behavior and seek help from a local medical professional, psychological support service, or emergency service.
+
+1. Nature of this agreement and eligibility
+1.1 This agreement governs your use of Journal-HRT and is made between you and the app's maintainers, contributors, and distributors.
+1.2 You must have the legal capacity required in your jurisdiction and be able to bear the health, legal, and other risks of using the app.
+1.3 Journal-HRT is a personal record, information-organizing, and risk-education tool. It is not a medical device, prescribing system, diagnostic tool, treatment recommendation, emergency service, or drug-recommendation system.
+
+2. Medical disclaimer
+2.1 Dose information, half-lives, concentration curves, modified-release models, interaction notices, reminder thresholds, and safety statements may be incomplete, outdated, or inaccurate. They are provided only for general information and rough estimation.
+2.2 Modeled concentrations are not laboratory measurements and do not replace therapeutic drug monitoring, clinical judgment, or individualized pharmacokinetic assessment. A relative-exposure curve does not represent a measured serum concentration.
+2.3 Body weight, age, kidney and liver function, genetics, disease, concomitant medicines, formulation, food, administration technique, and many other factors can materially change actual risk. Information from different sources is not a universally applicable prescription or dosing instruction.
+2.4 Do not use the app to start, stop, adjust, or combine any prescription medicine, non-prescription medicine, controlled substance, or other chemical. Seek a qualified medical professional for pregnancy, breastfeeding, minors, mental illness, cardiovascular disease, kidney or liver impairment, or other medical conditions.
+2.5 In case of impaired consciousness, breathing difficulty, chest pain, high fever, seizures, severe allergy, or another emergency, contact local emergency services immediately. Do not wait for a curve or reminder from this app.
+
+3. Legality, prescriptions, and controlled-substance information
+3.1 The app does not authorize you to obtain, possess, transport, sell, prescribe, use, or distribute any substance. It does not guarantee the legality, prescription compliance, import or export permission, or regulatory classification of any substance.
+3.2 You are responsible for complying with the laws, prescription requirements, customs rules, and other regulations applicable in the People's Republic of China and in your jurisdiction.
+3.3 You must not use the app for unlawful manufacture, trafficking, sale, inducing others to use substances, circumventing regulation, or any other unlawful purpose.
+
+4. User responsibility
+4.1 You bear full responsibility for your decisions, actions, and consequences, including substance selection, product verification, dose decisions, interaction assessment, supervision, and seeking medical care.
+4.2 Independently verify source, label, concentration, purity, compatibility, contraindications, and current regulatory information. Do not rely solely on this app or any single source.
+4.3 You assume the consequences of self-administration, misuse, overdose, mixing, contamination, administration error, reliance on modeled estimates, or delayed medical care. The open-source maintainers and contributors are not responsible for those acts or outcomes.
+
+5. Accuracy and availability
+5.1 The app is provided "as is" and "as available," without a warranty that content is complete, accurate, current, error-free, uninterrupted, or fit for a particular purpose.
+5.2 Maintainers may update, correct, remove, or discontinue content or features.
+5.3 External links, extension packs, third-party information, and user-created content remain the responsibility of their respective providers.
+
+6. Privacy and local data
+6.1 Journal entries, preferences, and custom data are stored on your device by default. You are responsible for securing your device, backups, and exports.
+6.2 When you export, share, or import data, recipients and platforms may process that data under their own rules.
+6.3 Extension updates, external links, and network features you initiate may contact the third-party addresses they declare and are subject to those parties' policies.
+
+7. Open-source licensing and intellectual property
+7.1 Journal-HRT contains open-source components under GNU GPLv3 and other licenses. Corresponding source and notices are provided under those license terms.
+7.2 Substance information, text, databases, and images may originate from different sources, whose attribution and license terms apply.
+7.3 This agreement does not reduce rights granted to you by any open-source license.
+
+8. Limitation of liability and indemnity
+8.1 To the maximum extent permitted by law, the maintainers, contributors, distributors, and associated persons are not liable for direct, indirect, incidental, special, punitive, or consequential loss arising from use of or inability to use the app, including injury, death, data loss, property loss, legal liability, or third-party claims.
+8.2 If your unlawful use, breach of this agreement, or infringement of another person's rights gives rise to a claim, loss, liability, or reasonable cost, you agree to bear responsibility to the extent permitted by law.
+8.3 Nothing in this section excludes rights or liability that cannot lawfully be excluded.
+
+9. Changes, severability, and governing law
+9.1 This agreement may be updated as features, data sources, or legal requirements change. The updated agreement will be made available in the app.
+9.2 If a provision is invalid or unenforceable, the remaining provisions continue to apply to the extent permitted by law.
+9.3 Mandatory applicable law governs this agreement. Non-waivable consumer and data-subject rights are preserved.
+
+10. Confirmation
+Selecting "Agree and continue" confirms that you have read the complete agreement, understand that the app is not professional medical or legal advice, voluntarily accept all risk and responsibility associated with the app and its information, and will comply with applicable law.

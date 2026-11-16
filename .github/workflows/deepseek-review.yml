@@ -1,0 +1,31 @@
+name: Code Review
+on:
+  pull_request_target:
+    types:
+      - opened # Triggers when a PR is opened
+      - reopened # Triggers when a PR is reopened
+      - synchronize # Triggers when a commit is pushed to the PR
+  issue_comment:
+    types:
+      - created # Triggers when a comment is created on a PR
+
+# fix: GraphQL: Resource not accessible by integration (addComment) error
+permissions:
+  pull-requests: write
+
+jobs:
+  setup-deepseek-review:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    name: Code Review
+    steps:
+      - name: DeepSeek Code Review
+        # pinned from v1.21
+        if: github.event_name != 'issue_comment' || github.event.comment.user.login == 'LoliLin'
+        uses: hustcer/deepseek-review@eccde2e9781008d795e366b951e313e37af88dd5
+        with:
+          temperature: 1
+          chat-token: ${{ secrets.CHAT_TOKEN }}
+          watch-mention: "@github-actions"
+          include-patterns: "*.kt,*.gradle,*.kts,*.md,*.py"
+          allowed-associations: "OWNER,MEMBER,COLLABORATOR"

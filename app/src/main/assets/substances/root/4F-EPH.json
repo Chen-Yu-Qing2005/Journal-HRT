@@ -1,0 +1,78 @@
+{
+  "name": "4F-EPH",
+  "commonNames": [
+    "4F-EPH",
+    "4-FEPH",
+    "4-Fluoroethylphenidate",
+    "4f-eph",
+    "4-feph"
+  ],
+  "url": "https://psychonautwiki.org/wiki/4F-EPH",
+  "isApproved": true,
+  "tolerance": {
+    "full": "develops with prolonged and repeated use",
+    "half": "3 - 7 days",
+    "zero": "1 - 2 weeks",
+    "halfToleranceInHours": 120,
+    "zeroToleranceInHours": 252
+  },
+  "crossTolerances": [
+    "dopamine",
+    "stimulant"
+  ],
+  "addictionPotential": "moderately addictive with a high potential for abuse",
+  "toxicities": [],
+  "categories": [
+    "stimulant",
+    "research-chemical",
+    "habit-forming",
+    "tentative"
+  ],
+  "interactions": {
+    "dangerous": [
+      "25x-NBOMe",
+      "25x-NBOH",
+      "Tramadol",
+      "maoi"
+    ],
+    "unsafe": [
+      "Dextromethorphan",
+      "MDMA",
+      "stimulant"
+    ],
+    "uncertain": [
+      "Alcohol",
+      "Methoxetamine",
+      "dissociative"
+    ]
+  },
+  "roas": [
+    {
+      "name": "oral",
+      "dose": {
+        "units": "mg",
+        "lightMin": 5,
+        "commonMin": 10,
+        "strongMin": 15,
+        "heavyMin": 30
+      },
+      "duration": {
+        "onset": {
+          "min": 10,
+          "max": 25,
+          "units": "minutes"
+        },
+        "total": {
+          "min": 5,
+          "max": 6,
+          "units": "hours"
+        },
+        "afterglow": {
+          "min": 4,
+          "max": 12,
+          "units": "hours"
+        }
+      }
+    }
+  ]
+}

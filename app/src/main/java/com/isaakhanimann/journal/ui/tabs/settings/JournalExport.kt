@@ -1,0 +1,253 @@
+/*
+ * Copyright (c) 2022-2023. Isaak Hanimann.
+ * This file is part of PsychonautWiki Journal.
+ *
+ * PsychonautWiki Journal is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * PsychonautWiki Journal is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PsychonautWiki Journal.  If not, see https://www.gnu.org/licenses/gpl-3.0.en.html.
+ */
+
+package com.isaakhanimann.journal.ui.tabs.settings
+
+import com.isaakhanimann.journal.data.room.experiences.entities.AdaptiveColor
+import com.isaakhanimann.journal.data.room.experiences.entities.CustomSubstance
+import com.isaakhanimann.journal.data.room.experiences.entities.Ingestion
+import com.isaakhanimann.journal.data.room.experiences.entities.ShulginRatingOption
+import com.isaakhanimann.journal.data.room.experiences.entities.StomachFullness
+import com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion
+import com.isaakhanimann.journal.data.room.experiences.entities.TreatmentEvent
+import com.isaakhanimann.journal.data.substances.AdministrationRoute
+import com.isaakhanimann.journal.data.substances.ReleaseForm
+import java.time.Instant
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+
+/**
+ * Parser for journal backups. Beyond ignoring fields written by other app versions,
+ * it coerces unknown values of optional enums (e.g. a formulation added later) to
+ * their default instead of failing the import.
+ */
+val journalImportJson = Json {
+    ignoreUnknownKeys = true
+    coerceInputValues = true
+}
+
+/** JSON encoder for backups that preserves default-valued and nullable fields. */
+val journalExportJson = Json {
+    encodeDefaults = true
+    explicitNulls = true
+}
+
+@Serializable
+data class UserPreferencesBackup(
+    val booleanValues: Map<String, Boolean> = emptyMap(),
+    val byteArrayValues: Map<String, String> = emptyMap(),
+    val doubleValues: Map<String, String> = emptyMap(),
+    val floatValues: Map<String, String> = emptyMap(),
+    val intValues: Map<String, Int> = emptyMap(),
+    val longValues: Map<String, Long> = emptyMap(),
+    val stringValues: Map<String, String> = emptyMap(),
+    val stringSetValues: Map<String, Set<String>> = emptyMap()
+) {
+    fun validate() {
+        val seen = mutableSetOf<String>()
+        listOf(
+            booleanValues.keys,
+            byteArrayValues.keys,
+            doubleValues.keys,
+            floatValues.keys,
+            intValues.keys,
+            longValues.keys,
+            stringValues.keys,
+            stringSetValues.keys
+        ).forEach { keys ->
+            val duplicate = keys.firstOrNull { !seen.add(it) }
+            require(duplicate == null) {
+                "Preference '$duplicate' has conflicting value types"
+            }
+        }
+    }
+}
+
+@Serializable
+data class JournalExport(
+    val experiences: List<ExperienceSerializable> = emptyList(),
+    val substanceCompanions: List<SubstanceCompanion> = emptyList(),
+    val customSubstances: List<CustomSubstance> = emptyList(),
+    val customUnits: List<CustomUnitSerializable> = emptyList(),
+    val treatmentEvents: List<TreatmentEventSerializable> = emptyList(),
+    val preferences: UserPreferencesBackup? = null,
+    val avatars: Map<String, String> = emptyMap()
+)
+
+@Serializable
+data class ExperienceSerializable(
+    val title: String,
+    val text: String,
+    @Serializable(with = InstantSerializer::class) val creationDate: Instant = Instant.now(),
+    @Serializable(with = InstantSerializer::class) val sortDate: Instant,
+    val isFavorite: Boolean = false,
+    val ingestions: List<IngestionSerializable> = emptyList(),
+    val location: LocationSerializable? = null,
+    val ratings: List<RatingSerializable> = emptyList(),
+    val timedNotes: List<TimedNoteSerializable> = emptyList()
+)
+
+@Serializable
+data class CustomUnitSerializable(
+    val id: Int = 0,
+    val substanceName: String,
+    val name: String,
+    @Serializable(with = InstantSerializer::class) val creationDate: Instant = Instant.now(),
+    val administrationRoute: AdministrationRoute,
+    var dose: Double? = null,
+    var estimatedDoseStandardDeviation: Double? = null,
+    var isEstimate: Boolean,
+    var isArchived: Boolean,
+    var unit: String,
+    var unitPlural: String?,
+    val originalUnit: String,
+    var note: String
+)
+
+@Serializable
+data class RatingSerializable(
+    @Serializable(with = ShulginRatingOptionSerializer::class) val option: ShulginRatingOption,
+    @Serializable(with = InstantSerializer::class) var time: Instant? = null,
+    @Serializable(with = InstantSerializer::class) var creationDate: Instant? = Instant.now()
+)
+
+@Serializable
+data class IngestionSerializable(
+    val substanceName: String,
+    @Serializable(with = InstantSerializer::class) var time: Instant,
+    @Serializable(with = InstantSerializer::class) var endTime: Instant? = null,
+    @Serializable(with = InstantSerializer::class) var creationDate: Instant? = Instant.now(),
+    val administrationRoute: AdministrationRoute,
+    var dose: Double? = null,
+    var isDoseAnEstimate: Boolean,
+    var estimatedDoseStandardDeviation: Double? = null,
+    var units: String? = null,
+    var notes: String? = null,
+    var stomachFullness: StomachFullness? = null,
+    var consumerName: String? = null,
+    var customUnitId: Int? = null,
+    var releaseForm: ReleaseForm? = null,
+    var extendedReleaseInitialMinutes: Double? = null,
+    var extendedReleaseInitialPercent: Double? = null,
+    var extendedReleaseSubsequentMinutes: Double? = null,
+    var applicationSite: String? = null,
+    var batchNumber: String? = null,
+    @Serializable(with = InstantSerializer::class) var productExpiryDate: Instant? = null
+)
+
+@Serializable
+data class TreatmentEventSerializable(
+    val substanceName: String,
+    val administrationRoute: AdministrationRoute,
+    val status: String,
+    var dose: Double? = null,
+    var units: String? = null,
+    var reason: String? = null,
+    var notes: String? = null,
+    @Serializable(with = InstantSerializer::class) var effectiveAt: Instant,
+    @Serializable(with = InstantSerializer::class) var creationDate: Instant
+)
+
+fun TreatmentEvent.toSerializable(): TreatmentEventSerializable =
+    TreatmentEventSerializable(
+        substanceName = substanceName,
+        administrationRoute = administrationRoute,
+        status = status,
+        dose = dose,
+        units = units,
+        reason = reason,
+        notes = notes,
+        effectiveAt = effectiveAt,
+        creationDate = creationDate
+    )
+
+fun TreatmentEventSerializable.toTreatmentEvent(): TreatmentEvent =
+    TreatmentEvent(
+        substanceName = substanceName,
+        administrationRoute = administrationRoute,
+        status = status,
+        dose = dose,
+        units = units,
+        reason = reason,
+        notes = notes,
+        effectiveAt = effectiveAt,
+        creationDate = creationDate
+    )
+
+fun Ingestion.toIngestionSerializable(): IngestionSerializable = IngestionSerializable(
+    substanceName = substanceName,
+    time = time,
+    endTime = endTime,
+    creationDate = creationDate,
+    administrationRoute = administrationRoute,
+    dose = dose,
+    isDoseAnEstimate = isDoseAnEstimate,
+    estimatedDoseStandardDeviation = estimatedDoseStandardDeviation,
+    units = units,
+    notes = notes,
+    stomachFullness = stomachFullness,
+    consumerName = consumerName,
+    customUnitId = customUnitId,
+    releaseForm = releaseForm,
+    extendedReleaseInitialMinutes = extendedReleaseInitialMinutes,
+    extendedReleaseInitialPercent = extendedReleaseInitialPercent,
+    extendedReleaseSubsequentMinutes = extendedReleaseSubsequentMinutes,
+    applicationSite = applicationSite,
+    batchNumber = batchNumber,
+    productExpiryDate = productExpiryDate
+)
+
+fun IngestionSerializable.toIngestion(experienceId: Int): Ingestion = Ingestion(
+    substanceName = substanceName,
+    time = time,
+    endTime = endTime,
+    creationDate = creationDate,
+    administrationRoute = administrationRoute,
+    dose = dose,
+    isDoseAnEstimate = isDoseAnEstimate,
+    estimatedDoseStandardDeviation = estimatedDoseStandardDeviation,
+    units = units,
+    experienceId = experienceId,
+    notes = notes,
+    stomachFullness = stomachFullness,
+    consumerName = consumerName,
+    customUnitId = customUnitId,
+    releaseForm = releaseForm,
+    extendedReleaseInitialMinutes = extendedReleaseInitialMinutes,
+    extendedReleaseInitialPercent = extendedReleaseInitialPercent,
+    extendedReleaseSubsequentMinutes = extendedReleaseSubsequentMinutes,
+    applicationSite = applicationSite,
+    batchNumber = batchNumber,
+    productExpiryDate = productExpiryDate
+)
+
+@Serializable
+data class LocationSerializable(
+    val name: String,
+    val latitude: Double? = null,
+    val longitude: Double? = null
+)
+
+@Serializable
+data class TimedNoteSerializable(
+    @Serializable(with = InstantSerializer::class) var creationDate: Instant,
+    @Serializable(with = InstantSerializer::class) var time: Instant,
+    var note: String,
+    var color: AdaptiveColor,
+    var isPartOfTimeline: Boolean
+)

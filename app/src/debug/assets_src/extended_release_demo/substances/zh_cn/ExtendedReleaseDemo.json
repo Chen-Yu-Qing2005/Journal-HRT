@@ -1,0 +1,13 @@
+{
+  "localizedName": "缓释片模型测试（虚构）",
+  "commonNames": ["ER Demo", "缓释模型测试"],
+  "summary": "用于两段缓释模型的两段式验收测试物质。",
+  "effectsSummary": "该物质不表示任何药理作用。",
+  "dosageRemark": "仅为合成测试值，不可用于医疗或用药决策。",
+  "generalRisks": "这不是真实药物，仅用于测试软件行为。",
+  "longtermRisks": "虚构物质没有真实世界安全性数据。",
+  "saferUse": [
+    "仅用于软件验收测试。",
+    "不要把模型输出理解为临床指导。"
+  ]
+}

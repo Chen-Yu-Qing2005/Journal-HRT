@@ -1,0 +1,79 @@
+{
+  "name": "ER Demo (fictional)",
+  "localizedName": "缓释片模型测试（虚构）",
+  "commonNames": ["ER Demo", "缓释模型测试"],
+  "url": "",
+  "isApproved": false,
+  "crossTolerances": [],
+  "toxicities": [],
+  "categories": ["demo", "medication"],
+  "summary": "Synthetic acceptance-test substance for the two-stage extended-release model.",
+  "effectsSummary": "No pharmacologic effect is represented. This substance is fictional.",
+  "dosageRemark": "Synthetic values only. Do not use for medical or dosing decisions.",
+  "generalRisks": "This is not a real medicine. The purpose is to test software behavior.",
+  "longtermRisks": "No real-world safety data exist because the substance is fictional.",
+  "saferUse": [
+    "Use this entry only for software acceptance testing.",
+    "Do not interpret the model output as clinical guidance."
+  ],
+  "interactions": {
+    "dangerous": [],
+    "unsafe": [],
+    "uncertain": []
+  },
+  "roas": [
+    {
+      "name": "oral",
+      "dose": {
+        "units": "mg",
+        "lightMin": 1,
+        "commonMin": 5,
+        "strongMin": 10,
+        "heavyMin": 20
+      },
+      "duration": {
+        "onset": {
+          "min": 0.25,
+          "max": 0.5,
+          "units": "hours"
+        },
+        "comeup": {
+          "min": 0.5,
+          "max": 2,
+          "units": "hours"
+        },
+        "peak": {
+          "min": 2,
+          "max": 4,
+          "units": "hours"
+        },
+        "offset": {
+          "min": 4,
+          "max": 8,
+          "units": "hours"
+        },
+        "total": {
+          "min": 8,
+          "max": 12,
+          "units": "hours"
+        },
+        "afterglow": {
+          "min": 0,
+          "max": 0,
+          "units": "hours"
+        }
+      }
+    }
+  ],
+  "oralReleaseForms": [
+    "IMMEDIATE_RELEASE",
+    "EXTENDED_RELEASE"
+  ],
+  "extendedReleasePreset": {
+    "initialMinutes": 60,
+    "initialPercent": 32,
+    "subsequentMinutes": 480,
+    "source": "Synthetic acceptance-test preset",
+    "note": "虚构参数：前 60 分钟释放 32%，剩余 68% 在随后 480 分钟内释放。"
+  }
+}

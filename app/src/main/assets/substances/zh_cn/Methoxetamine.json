@@ -1,0 +1,15 @@
+{
+  "tolerance": {
+    "full": "长期反复使用后形成",
+    "half": "3 - 7天",
+    "zero": "1 - 2周",
+    "halfToleranceInHours": 120,
+    "zeroToleranceInHours": 252
+  },
+  "addictionPotential": "中度成瘾，具有较高的滥用潜力",
+  "toxicities": [
+    "确切的中毒剂量未知"
+  ],
+  "localizedName": "甲氧西他明",
+  "metabolism": "本条目尚未核实该物质的人体代谢途径，暂不指定代谢酶、代谢物及排泄路线。这表示资料有待补充，并不表示该物质不发生代谢；不能直接套用类似物质的途径。"
+}

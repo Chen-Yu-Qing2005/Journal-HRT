@@ -1,0 +1,263 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Version Name'
+        required: true
+      version_code:
+        description: 'Version Code'
+        required: true
+      release_name:
+        description: 'Release Title'
+        required: true
+      play_track:
+        description: 'Google Play 轨道（internal / alpha / beta / production）'
+        required: false
+        default: 'internal'
+      play_release_status:
+        description: '上架状态（completed / draft / halted / inProgress）'
+        required: false
+        default: 'completed'
+
+run-name: "Release ${{ inputs.release_name }} (v${{ inputs.version_name }} / build ${{ inputs.version_code }})"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # 同一个仓库的发布串行执行：两次派发同时跑会抢版本号、抢 tag、抢 fastlane 的 edit
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    permissions:
+      contents: write   # 允许修改代码、推送 Tag 和创建 Release
+
+    steps:
+      - name: Check Out
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          
+      - name: Generate AI Changelog
+        uses: SwufeFox/Fastlane-AI-Changelog@v1
+        with:
+          openai_api_key: ${{ secrets.CHAT_TOKEN }}
+          api_base_url: 'https://api.deepseek.com/v1'
+          model: 'deepseek-v4-flash'
+          version_code: "${{ github.event.inputs.version_code }}"
+          locales: 'zh-CN,en-US,zh-TW'
+
+      # 1. 按输入改版本号（只改工作区，先不提交：构建失败就不留痕）
+      - name: Update Version in Source Files
+        run: |
+          NEW_V_NAME="${{ github.event.inputs.version_name }}"
+          NEW_V_CODE="${{ github.event.inputs.version_code }}"
+          
+          echo "Updating files to VersionName: $NEW_V_NAME, VersionCode: $NEW_V_CODE..."
+          
+          # 修改 app/build.gradle
+          GRADLE_FILE="app/build.gradle"
+          if [ -f "$GRADLE_FILE" ]; then
+            sed -i "s/versionCode [0-9]*/versionCode $NEW_V_CODE/g" "$GRADLE_FILE"
+            sed -i "s/versionName \".*\"/versionName \"$NEW_V_NAME\"/g" "$GRADLE_FILE"
+          else
+            echo "Error: $GRADLE_FILE not found!"
+            exit 1
+          fi
+          
+          # 修改 Constants.kt
+          CONSTANTS_FILE="app/src/main/java/com/isaakhanimann/journal/ui/Constants.kt"
+          if [ -f "$CONSTANTS_FILE" ]; then
+            sed -i "s/const val VERSION_NAME = \".*\"/const val VERSION_NAME = \"$NEW_V_NAME\"/g" "$CONSTANTS_FILE"
+          else
+            echo "Error: $CONSTANTS_FILE not found!"
+            exit 1
+          fi
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install platform tools and accept licenses
+        run: |
+          # 不再钉 platforms/build-tools 的具体版本：项目 compileSdk 已经到 37，
+          # AGP 会按项目声明自动下载所需平台，钉一个过期的 34 只是白下一次。
+          sdkmanager "platform-tools"
+          yes | sdkmanager --licenses
+
+      - name: Grant Gradle execute permission
+        run: chmod +x ./gradlew
+
+      - name: Build release APK (main repo)
+        if: github.repository == 'LoliLin/journal-android-multilingual'
+        env:
+          ENABLE_SPLITS: "true"
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --stacktrace
+      - name: Build release AAB (main repo)
+        if: github.repository == 'LoliLin/journal-android-multilingual'
+        env:
+          ENABLE_SPLITS: "false"
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --stacktrace
+
+      - name: Build debug APK (forks)
+        if: github.repository != 'LoliLin/journal-android-multilingual'
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Prepare Artifacts and Rename APK & AAB
+        run: |
+          mkdir -p downloads
+          V_NAME="${{ github.event.inputs.version_name }}"
+
+          if [ "${{ github.repository }}" = "LoliLin/journal-android-multilingual" ]; then
+            # APK: collect per-ABI (or universal) release builds
+            find app/build/outputs/apk/release/ -name "*.apk" -print0 | while IFS= read -r -d '' apk; do
+              base=$(basename "$apk" .apk)
+              abi=${base#app-}
+              abi=${abi%-release}
+              if [ -z "$abi" ] || [ "$abi" = "release" ]; then
+                abi="universal"
+              fi
+              cp "$apk" "downloads/journal-android-multilingual-${V_NAME}-${abi}.apk"
+            done
+
+            # Select the actual bundle output instead of assuming a single AGP path.
+            mapfile -t AAB_FILES < <(
+              find app/build/outputs/bundle -type f -name "*.aab" -print 2>/dev/null
+            )
+            if [ "${#AAB_FILES[@]}" -ne 1 ]; then
+              echo "::error::预期找到一个 release AAB，实际找到 ${#AAB_FILES[@]} 个。"
+              find app/build/outputs/bundle -maxdepth 5 -type f -print 2>/dev/null || true
+              exit 1
+            fi
+            AAB_PATH="${AAB_FILES[0]}"
+            AAB_ARTIFACT="downloads/journal-android-multilingual-${V_NAME}.aab"
+            cp "$AAB_PATH" "$AAB_ARTIFACT"
+            echo "AAB copied from $AAB_PATH to $AAB_ARTIFACT"
+          else
+            # Fork repositories: debug APK only
+            find app/build/outputs/apk/debug/ -name "*.apk" -print0 | while IFS= read -r -d '' apk; do
+              cp "$apk" "downloads/journal-android-multilingual-${V_NAME}-debug.apk"
+            done
+          fi
+          
+      # 4. 构建与产物都成功了，才把版本号提交回去并打 tag：
+      #    之前是先提交、先打 tag 再构建，构建一失败就留下"有 tag 没产物"的空壳。
+      - name: Commit & Push Version Bump
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add app/build.gradle app/src/main/java/com/isaakhanimann/journal/ui/Constants.kt fastlane/
+
+          if ! git diff --cached --exit-code; then
+            git commit -m "chore: bump version to v${{ github.event.inputs.version_name }} (${{ github.event.inputs.version_code }})"
+            git push origin HEAD:${{ github.ref }}
+          else
+            echo "No changes detected, skipping commit."
+          fi
+
+      - name: Create and Push Tag
+        run: |
+          TAG_TAG="${{ github.event.inputs.version_name }}"
+          echo "TAG_TAG=$TAG_TAG" >> $GITHUB_ENV
+
+          # 如果云端已有同名 tag 先清理（防止重复运行报错）
+          git tag -d "$TAG_TAG" 2>/dev/null || true
+          git push origin :refs/tags/$TAG_TAG 2>/dev/null || true
+
+          git tag "$TAG_TAG"
+          git push origin "$TAG_TAG"
+
+      # 5. 发布 GitHub Release（tag 已指向 bump 提交）
+      - name: Release to GitHub
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "downloads/*"
+          tag: ${{ github.event.inputs.version_name }}
+          name: ${{ github.event.inputs.release_name }}
+          generateReleaseNotes: true   
+          allowUpdates: true
+
+      # 6. 上传到 Google Play：签名 AAB + fastlane/metadata/android（标题/描述/截图/按 versionCode 的 changelog）
+      #    服务账号密钥不在仓库里：这里从 GOOGLE_PLAY_API secret 写出 google-play-api.json（已在 .gitignore 中）。
+      - name: Set up Ruby
+        if: github.repository == 'LoliLin/journal-android-multilingual'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          # 只有存在 Gemfile.lock 时才开缓存：第一次跑没有锁文件，bundler 生成后
+          # 由下一步提交回仓库，之后的运行才会命中 gem 缓存。
+          bundler-cache: ${{ hashFiles('Gemfile.lock') != '' }}
+
+      - name: Upload to Google Play
+        if: github.repository == 'LoliLin/journal-android-multilingual'
+        env:
+          GOOGLE_PLAY_API: ${{ secrets.GOOGLE_PLAY_API }}
+          PLAY_TRACK: ${{ github.event.inputs.play_track }}
+          PLAY_RELEASE_STATUS: ${{ github.event.inputs.play_release_status }}
+          PLAY_AAB_PATH: downloads/journal-android-multilingual-${{ github.event.inputs.version_name }}.aab
+        run: |
+          set -euo pipefail
+
+          # 第一步先装依赖并补上锁文件：要在"密钥缺失就退出"之前做，否则永远生成不了 Gemfile.lock
+          bundle install --jobs 4 --retry 3
+          if ! git ls-files --error-unmatch Gemfile.lock >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add Gemfile.lock
+            if ! git diff --cached --exit-code; then
+              git commit -m "chore: lock the fastlane dependencies"
+              git push origin HEAD:${{ github.ref }} \
+                || echo "::warning::Gemfile.lock 提交失败，请手动提交（否则缓存不会生效）"
+            fi
+          fi
+
+          if [ -z "${GOOGLE_PLAY_API:-}" ]; then
+            echo "::error::未配置 GOOGLE_PLAY_API secret，无法发布到 Google Play。"
+            exit 1
+          fi
+
+          # secret 里可能是原始 JSON，也可能是 base64（与 KEYSTORE_BASE64 一致的习惯）
+          printf '%s' "$GOOGLE_PLAY_API" > google-play-api.json
+          if ! python3 -c "import json;json.load(open('google-play-api.json'))" 2>/dev/null; then
+            base64 -d google-play-api.json > google-play-api.decoded.json
+            mv google-play-api.decoded.json google-play-api.json
+          fi
+          python3 -c "import json;json.load(open('google-play-api.json'))" \
+            || { echo "::error::GOOGLE_PLAY_API 既不是合法 JSON 也不是合法 base64。"; exit 1; }
+
+          if [ ! -f "$PLAY_AAB_PATH" ]; then
+            echo "::error::Google Play AAB 不存在：$PLAY_AAB_PATH"
+            echo "::error::构建产物目录内容："
+            find app/build/outputs/bundle downloads -maxdepth 5 -type f -name "*.aab" -print 2>/dev/null || true
+            exit 1
+          fi
+
+          # 更新说明按 versionCode 命名（changelogs/<versionCode>.txt），缺了就静默不显示
+          VERSION_CODE="${{ github.event.inputs.version_code }}"
+          if [ ! -f "fastlane/metadata/android/en-US/changelogs/${VERSION_CODE}.txt" ]; then
+            echo "::error::fastlane/metadata/android/en-US/changelogs/${VERSION_CODE}.txt 不存在；"
+            echo "::error::Play 的「本次更新说明」是按 versionCode 找文件的，缺了不会报错但也不会显示。"
+            exit 1
+          fi
+          for lang in zh-CN zh-TW; do
+            [ -f "fastlane/metadata/android/${lang}/changelogs/${VERSION_CODE}.txt" ] \
+              || echo "::warning::${lang} 缺少 changelogs/${VERSION_CODE}.txt（该语言不会显示更新说明）"
+          done
+
+          bundle exec fastlane deploy

@@ -1,0 +1,141 @@
+/*
+ * Copyright (c) 2022-2023. Isaak Hanimann.
+ * This file is part of PsychonautWiki Journal.
+ *
+ * PsychonautWiki Journal is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * PsychonautWiki Journal is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PsychonautWiki Journal.  If not, see https://www.gnu.org/licenses/gpl-3.0.en.html.
+ */
+
+package com.isaakhanimann.journal.ui.tabs.journal.addingestion.dose.customsubstance
+
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.isaakhanimann.journal.data.room.experiences.ExperienceRepository
+import com.isaakhanimann.journal.data.substances.AdministrationRoute
+import com.isaakhanimann.journal.data.substances.ReleaseForm
+import com.isaakhanimann.journal.data.substances.classes.roa.ExtendedReleaseProfile
+import com.isaakhanimann.journal.ui.main.navigation.routes.CustomChooseDoseRoute
+import com.isaakhanimann.journal.ui.tabs.search.substance.roa.toReadableString
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
+
+@HiltViewModel(assistedFactory = CustomChooseDoseViewModel.Factory::class)
+class CustomChooseDoseViewModel @AssistedInject constructor(
+    experienceRepository: ExperienceRepository,
+    @Assisted val route: CustomChooseDoseRoute
+) : ViewModel() {
+    var substanceName by mutableStateOf("")
+    val administrationRoute: AdministrationRoute
+    var units by mutableStateOf("mg")
+    var isEstimate by mutableStateOf(false)
+    var doseText by mutableStateOf("")
+    var estimatedDoseDeviationText by mutableStateOf("")
+    var purityText by mutableStateOf("100")
+    var releaseForm by mutableStateOf<ReleaseForm?>(null)
+        private set
+    var extendedReleaseInitialMinutesText by mutableStateOf("")
+        private set
+    var extendedReleaseInitialPercentText by mutableStateOf("")
+        private set
+    var extendedReleaseSubsequentMinutesText by mutableStateOf("")
+        private set
+    private val purity: Double?
+        get() {
+            val p = purityText.toDoubleOrNull()
+            return if (p != null && p > 0 && p <= 100) {
+                p
+            } else {
+                null
+            }
+        }
+    val isPurityValid: Boolean get() = purity != null
+    val rawDoseWithUnit: String?
+        get() {
+            dose.let {
+                if (it == null) return null
+                purity.let { safePurity ->
+                    if (safePurity == null) return null
+                    val result = it.div(safePurity).times(100)
+                    return result.toReadableString() + " $units"
+                }
+            }
+        }
+    val dose: Double? get() = doseText.toDoubleOrNull()
+    val estimatedDoseStandardDeviation: Double? get() = estimatedDoseDeviationText.toDoubleOrNull()
+    val isValidDose: Boolean get() = dose != null
+    val availableReleaseForms: List<ReleaseForm>
+        get() = if (administrationRoute == AdministrationRoute.ORAL) {
+            listOf(ReleaseForm.EXTENDED_RELEASE)
+        } else {
+            emptyList()
+        }
+    val extendedReleaseProfile: ExtendedReleaseProfile?
+        get() = ExtendedReleaseProfile.fromNullable(
+            initialMinutes = extendedReleaseInitialMinutesText.toDoubleOrNull(),
+            initialPercent = extendedReleaseInitialPercentText.toDoubleOrNull(),
+            subsequentMinutes = extendedReleaseSubsequentMinutesText.toDoubleOrNull()
+        )
+    val isExtendedReleaseConfigurationValid: Boolean
+        get() = releaseForm != ReleaseForm.EXTENDED_RELEASE || extendedReleaseProfile != null
+
+    fun onChangeReleaseForm(form: ReleaseForm?) {
+        releaseForm = form
+    }
+
+    fun onChangeExtendedReleaseInitialMinutes(value: String) {
+        extendedReleaseInitialMinutesText = value
+    }
+
+    fun onChangeExtendedReleaseInitialPercent(value: String) {
+        extendedReleaseInitialPercentText = value
+    }
+
+    fun onChangeExtendedReleaseSubsequentMinutes(value: String) {
+        extendedReleaseSubsequentMinutesText = value
+    }
+
+    fun extendedReleaseProfileForNext(): ExtendedReleaseProfile? =
+        extendedReleaseProfile.takeIf { releaseForm == ReleaseForm.EXTENDED_RELEASE }
+
+    fun onDoseTextChange(newDoseText: String) {
+        doseText = newDoseText.replace(oldChar = ',', newChar = '.')
+    }
+
+    fun onEstimatedDoseStandardDeviationTextChange(newDeviationText: String) {
+        estimatedDoseDeviationText = newDeviationText.replace(oldChar = ',', newChar = '.')
+    }
+
+    init {
+        val customSubstanceId = route.customSubstanceId
+        administrationRoute = route.administrationRoute
+        viewModelScope.launch {
+            val customSubstance =
+                experienceRepository.getCustomSubstanceFlow(customSubstanceId).firstOrNull()
+                    ?: return@launch
+            substanceName = customSubstance.name
+            units = customSubstance.units
+        }
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(route: CustomChooseDoseRoute): CustomChooseDoseViewModel
+    }
+}

@@ -1,0 +1,372 @@
+/*
+ * Copyright (c) 2022-2023. Isaak Hanimann.
+ * This file is part of PsychonautWiki Journal.
+ *
+ * PsychonautWiki Journal is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or (at
+ * your option) any later version.
+ *
+ * PsychonautWiki Journal is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PsychonautWiki Journal.  If not, see https://www.gnu.org/licenses/gpl-3.0.en.html.
+ */
+
+package com.isaakhanimann.journal.ui.main
+
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.unit.dp
+import androidx.core.util.Consumer
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation3.ui.NavDisplay
+import com.isaakhanimann.journal.localization.I18n
+import com.isaakhanimann.journal.ui.main.navigation.ROOT_TAB_INPUT_LOCK_MS
+import com.isaakhanimann.journal.ui.main.navigation.Nav3TabManager
+import com.isaakhanimann.journal.ui.main.navigation.decoratedEntries
+import com.isaakhanimann.journal.ui.main.navigation.navTransitionSpecForDirection
+import com.isaakhanimann.journal.ui.main.navigation.nav3EntryProvider
+import com.isaakhanimann.journal.ui.main.navigation.popNavTransitionSpecForDirection
+import com.isaakhanimann.journal.ui.main.navigation.predictivePopTransitionSpecForDirection
+import com.isaakhanimann.journal.ui.main.navigation.rememberNav3TabManager
+import com.isaakhanimann.journal.ui.main.navigation.routes.AddIngestionRoute
+import com.isaakhanimann.journal.ui.main.navigation.routes.CategoryRoute
+import com.isaakhanimann.journal.ui.main.navigation.routes.ChooseRouteOfAddIngestionRoute
+import com.isaakhanimann.journal.ui.main.navigation.routes.ExperienceRoute
+import com.isaakhanimann.journal.ui.main.navigation.routes.QuickTimedNoteRoute
+import com.isaakhanimann.journal.ui.main.navigation.routes.SubstanceCompanionRoute
+import com.isaakhanimann.journal.ui.main.navigation.routes.SubstanceRoute
+import com.isaakhanimann.journal.ui.main.navigation.routes.TimeCapsuleRoute
+import com.isaakhanimann.journal.ui.main.navigation.routes.TopLevelDestinations
+import com.isaakhanimann.journal.ui.notifications.EXTRA_EXPERIENCE_ID
+import com.isaakhanimann.journal.ui.notifications.EXTRA_NAVIGATE_TO
+import com.isaakhanimann.journal.ui.notifications.EXTRA_SUBSTANCE_NAME
+import com.isaakhanimann.journal.ui.notifications.NAV_ADD_INGESTION
+import com.isaakhanimann.journal.ui.notifications.NAV_CHOOSE_ROUTE
+import com.isaakhanimann.journal.ui.notifications.NAV_QUICK_NOTE
+import com.isaakhanimann.journal.ui.notifications.NAV_STATS
+import com.isaakhanimann.journal.ui.notifications.NAV_SUBSTANCE
+import com.isaakhanimann.journal.ui.notifications.NAV_SUBSTANCE_COMPANION
+import com.isaakhanimann.journal.ui.notifications.NAV_TIME_CAPSULE
+import com.isaakhanimann.journal.ui.utils.keyboard.isKeyboardOpen
+import com.isaakhanimann.journal.ui.utils.JournalHrtLinks
+import com.isaakhanimann.journal.localization.i18n
+
+private const val TAG = "MainScreen"
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen(viewModel: MainScreenViewModel = hiltViewModel()) {
+    val activity = LocalContext.current as? Activity
+    val selectedLanguageKey by viewModel.selectedLanguageFlow.collectAsState()
+    LaunchedEffect(selectedLanguageKey) { I18n.setPreferredLanguageKey(selectedLanguageKey) }
+    val rootTabTransitionsEnabled = viewModel.isRootTabTransitionsEnabledFlow.collectAsState().value
+    val isAccepted = viewModel.isAcceptedFlow.collectAsState().value
+    val isAppLockEnabled = viewModel.isAppLockEnabledFlow.collectAsState().value
+    val isUnlocked = viewModel.isUnlockedFlow.collectAsState().value
+    val starPromptCount by viewModel.starPromptCountFlow.collectAsState()
+    val uriHandler = LocalUriHandler.current
+    val pendingIntent = rememberPendingNavigationIntent()
+    if (!isAccepted) {
+        AcceptConditionsScreen(
+            onTapAccept = viewModel::accept,
+            onTapReject = { activity?.finishAndRemoveTask() }
+        )
+    } else if (isAppLockEnabled && !isUnlocked) {
+        AppLockScreen(onUnlocked = viewModel::markUnlocked)
+    } else {
+        MainScreenContent(viewModel, pendingIntent, rootTabTransitionsEnabled)
+    }
+    if (isAccepted &&
+        (!isAppLockEnabled || isUnlocked) &&
+        starPromptCount != null
+    ) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissStarPrompt,
+            title = {
+                Text(i18n("star_prompt_title"))
+            },
+            text = {
+                Column {
+                    Text(
+                        i18n(
+                            "star_prompt_message",
+                            mapOf("count" to starPromptCount.toString())
+                        )
+                    )
+                    TextButton(
+                        onClick = {
+                            uriHandler.openUri(JournalHrtLinks.REPOSITORY)
+                        }
+                    ) {
+                        Text(i18n("star_prompt_open_repository"))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = viewModel::dismissStarPrompt
+                ) {
+                    Text(i18n("star_prompt_later"))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun rememberPendingNavigationIntent(): MutableState<Intent?> {
+    val pending = remember { mutableStateOf<Intent?>(null) }
+    val activity = LocalContext.current as? ComponentActivity
+    DisposableEffect(activity) {
+        val listener = Consumer<Intent> { pending.value = it }
+        activity?.addOnNewIntentListener(listener)
+        onDispose { activity?.removeOnNewIntentListener(listener) }
+    }
+    LaunchedEffect(activity) { activity?.intent?.let { pending.value = it } }
+    return pending
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MainScreenContent(
+    viewModel: MainScreenViewModel,
+    pendingIntent: MutableState<Intent?>,
+    rootTabTransitionsEnabled: Boolean
+) {
+    val isBottomBarPinned = viewModel.isBottomBarPinnedFlow.collectAsState().value
+    val manager = rememberNav3TabManager()
+    val entryProvider = remember(manager) { nav3EntryProvider(manager) }
+    val entries = manager.decoratedEntries(entryProvider)
+    val selectedDestination = manager.selectedTab
+    val settledTabSelectionRevision = remember(manager) {
+        mutableIntStateOf(manager.tabSelectionRevision)
+    }
+    val rootTabInputLock = remember(manager) { Animatable(0f) }
+    val isOnMainTabRoot = manager.isAtRoot()
+    val activity = LocalContext.current as? Activity
+
+    val pendingIntentValue = pendingIntent.value
+    LaunchedEffect(pendingIntentValue) {
+        pendingIntentValue?.let {
+            handleNavigationIntent(manager, it)
+            pendingIntent.value = null
+        }
+    }
+
+    val isKeyboardOpenNow = isKeyboardOpen().value
+    val rootTabSwipeThresholdPx = with(LocalDensity.current) { 48.dp.toPx() }
+    val isBottomBarShown = shouldShowBottomBar(isOnMainTabRoot, isKeyboardOpenNow)
+    val bottomBarScrollBehavior = rememberBottomBarScrollBehavior {
+        shouldShowBottomBar(isOnMainTabRoot, isKeyboardOpenNow)
+    }
+    val nestedScrollConnection = if (isBottomBarPinned) null else remember(bottomBarScrollBehavior) {
+        bottomBarNestedScrollConnection(bottomBarScrollBehavior)
+    }
+    LaunchedEffect(isOnMainTabRoot, isKeyboardOpenNow, isBottomBarPinned) {
+        if (!isOnMainTabRoot || isKeyboardOpenNow || isBottomBarPinned) {
+            bottomBarScrollBehavior.state.heightOffset = 0f
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        val barHeightPx = remember { mutableIntStateOf(0) }
+        val heightOffset = if (isBottomBarPinned) 0f else bottomBarScrollBehavior.state.heightOffset
+        val visibleBarPx = if (isBottomBarShown) {
+            (barHeightPx.intValue + heightOffset.toInt()).coerceAtLeast(0)
+        } else {
+            0
+        }
+        CompositionLocalProvider(
+            LocalBottomBarNestedScrollConnection provides nestedScrollConnection,
+            LocalBottomBarOverlayInsetPx provides visibleBarPx
+        ) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val rootTabTransitionDistancePx =
+                    with(LocalDensity.current) { maxWidth.toPx() * 0.38f }
+                val tabSelectionRevision = manager.tabSelectionRevision
+                val latestTransitionDistancePx = rememberUpdatedState(rootTabTransitionDistancePx)
+                LaunchedEffect(manager, tabSelectionRevision) {
+                    if (settledTabSelectionRevision.intValue != tabSelectionRevision) {
+                        rootTabInputLock.snapTo(latestTransitionDistancePx.value)
+                        rootTabInputLock.animateTo(
+                            targetValue = 0f,
+                            animationSpec = tween(ROOT_TAB_INPUT_LOCK_MS)
+                        )
+                        settledTabSelectionRevision.intValue = tabSelectionRevision
+                    }
+                }
+                val isRootTabTransitionRunning =
+                    settledTabSelectionRevision.intValue != tabSelectionRevision ||
+                        rootTabInputLock.isRunning
+
+                NavDisplay(
+                    entries = entries,
+                    onBack = { if (!manager.pop()) activity?.finish() },
+                    transitionSpec = navTransitionSpecForDirection(
+                        manager.navigationDirection,
+                        agoraStyle = rootTabTransitionsEnabled
+                    ),
+                    popTransitionSpec = popNavTransitionSpecForDirection(
+                        manager.popDirection,
+                        agoraStyle = rootTabTransitionsEnabled
+                    ),
+                    predictivePopTransitionSpec = predictivePopTransitionSpecForDirection(
+                        manager.predictivePopDirection,
+                        agoraStyle = rootTabTransitionsEnabled
+                    ),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        // Cancel an in-flight root swipe as soon as a tab transition starts.
+                        .pointerInput(
+                            manager,
+                            selectedDestination,
+                            isOnMainTabRoot,
+                            isKeyboardOpenNow,
+                            isRootTabTransitionRunning
+                        ) {
+                            if (isOnMainTabRoot && !isKeyboardOpenNow && !isRootTabTransitionRunning) {
+                                var horizontalDrag = 0f
+                                detectHorizontalDragGestures(
+                                    onDragStart = { horizontalDrag = 0f },
+                                    onHorizontalDrag = { _, dragAmount ->
+                                        horizontalDrag += dragAmount
+                                    },
+                                    onDragEnd = {
+                                        val tabTransitionSettled =
+                                            settledTabSelectionRevision.intValue == manager.tabSelectionRevision &&
+                                                !rootTabInputLock.isRunning
+                                        if (tabTransitionSettled) {
+                                            val tabs = TopLevelDestinations.all
+                                            val currentIndex = tabs.indexOf(selectedDestination)
+                                            when {
+                                                horizontalDrag < -rootTabSwipeThresholdPx && currentIndex < tabs.lastIndex ->
+                                                    manager.switchToTab(tabs[currentIndex + 1])
+                                                horizontalDrag > rootTabSwipeThresholdPx && currentIndex > 0 ->
+                                                    manager.switchToTab(tabs[currentIndex - 1])
+                                            }
+                                        }
+                                    },
+                                    onDragCancel = { horizontalDrag = 0f }
+                                )
+                            }
+                        }
+                )
+                // Block Compose page input while scenes move; system back remains system-owned.
+                if (isRootTabTransitionRunning) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(tabSelectionRevision) {
+                                awaitEachGesture {
+                                    awaitFirstDown(requireUnconsumed = false).consume()
+                                    do {
+                                        val event = awaitPointerEvent()
+                                        event.changes.forEach { it.consume() }
+                                    } while (event.changes.any { it.pressed })
+                                }
+                            }
+                    )
+                }
+            }
+        }
+        BottomNavigationBar(
+            visible = isBottomBarShown,
+            selectedDestination = selectedDestination,
+            scrollBehavior = bottomBarScrollBehavior,
+            isPinned = isBottomBarPinned,
+            onTabSelected = { destination ->
+                if (destination == selectedDestination) manager.popToRoot(destination)
+                else manager.switchToTab(destination)
+            },
+            onMeasuredHeightChanged = { barHeightPx.intValue = it },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+private fun handleNavigationIntent(manager: Nav3TabManager, intent: Intent) {
+    if (handleDeepLink(manager, intent.data)) return
+    val target = intent.getStringExtra(EXTRA_NAVIGATE_TO) ?: return
+    val experienceId = intent.getIntExtra(EXTRA_EXPERIENCE_ID, -1)
+    val substanceName = intent.getStringExtra(EXTRA_SUBSTANCE_NAME)
+    when (target) {
+        NAV_QUICK_NOTE -> if (experienceId > 0) manager.navigate(QuickTimedNoteRoute(experienceId))
+        NAV_TIME_CAPSULE -> manager.navigate(TimeCapsuleRoute)
+    NAV_ADD_INGESTION -> manager.navigate(AddIngestionRoute())
+        NAV_STATS -> manager.switchToTab(TopLevelDestinations.Stats)
+        NAV_SUBSTANCE -> if (!substanceName.isNullOrBlank()) manager.navigate(SubstanceRoute(substanceName))
+        NAV_SUBSTANCE_COMPANION -> if (!substanceName.isNullOrBlank()) {
+            manager.navigate(SubstanceCompanionRoute(substanceName, null))
+        }
+        NAV_CHOOSE_ROUTE -> if (!substanceName.isNullOrBlank()) {
+            manager.navigate(ChooseRouteOfAddIngestionRoute(substanceName))
+        }
+    }
+}
+
+private fun handleDeepLink(manager: Nav3TabManager, uri: Uri?): Boolean {
+    if (uri?.scheme != "journal" || uri.host != "open") return false
+    val segments = uri.pathSegments
+    val route = segments.firstOrNull() ?: return false
+    fun segment(index: Int): String? = segments.getOrNull(index)
+    when (route) {
+        "journal" -> manager.switchToTab(TopLevelDestinations.Journal)
+        "stats" -> manager.switchToTab(TopLevelDestinations.Stats)
+        "substances" -> manager.switchToTab(TopLevelDestinations.Substances)
+        "safer" -> manager.switchToTab(TopLevelDestinations.Safer)
+        "settings" -> manager.switchToTab(TopLevelDestinations.Settings)
+        "substance" -> segment(1)?.let { manager.navigate(SubstanceRoute(it)) }
+        "category" -> segment(1)?.let { manager.navigate(CategoryRoute(it)) }
+        "experience" -> segment(1)?.toIntOrNull()?.let { manager.navigate(ExperienceRoute(it)) }
+        "quick-note" -> segment(1)?.toIntOrNull()?.let { manager.navigate(QuickTimedNoteRoute(it)) }
+        "time-capsule" -> manager.navigate(TimeCapsuleRoute)
+            "add-ingestion" -> manager.navigate(AddIngestionRoute())
+        "choose-route" -> segment(1)?.let { manager.navigate(ChooseRouteOfAddIngestionRoute(it)) }
+        "substance-companion" -> segment(1)?.let {
+            manager.navigate(SubstanceCompanionRoute(it, uri.getQueryParameter("consumerName")))
+        }
+        else -> {
+            Log.w(TAG, "Ignoring unknown deep link: $uri")
+            return false
+        }
+    }
+    return true
+}

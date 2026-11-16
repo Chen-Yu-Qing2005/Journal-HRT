@@ -1,0 +1,105 @@
+{
+  "name": "Methadone",
+  "commonNames": [
+    "Methadone",
+    "Dolophine",
+    "Methadose"
+  ],
+  "url": "https://psychonautwiki.org/wiki/Methadone",
+  "isApproved": true,
+  "tolerance": {
+    "full": "develops with prolonged and repeated use",
+    "half": "3 - 7 days",
+    "zero": "1 - 2 weeks",
+    "halfToleranceInHours": 120,
+    "zeroToleranceInHours": 252
+  },
+  "crossTolerances": [
+    "opioid"
+  ],
+  "addictionPotential": "extremely addictive with a high potential for abuse",
+  "toxicities": [
+    "moderate toxicity",
+    "potentially lethal when mixed with depressants like alcohol or benzodiazepines"
+  ],
+  "categories": [
+    "opioid",
+    "habit-forming",
+    "depressant",
+    "common"
+  ],
+  "summary": "A synthetic opioid drug used as an analgesic and is often used in detoxification off of other opioids. As it has a much longer half-life.",
+  "interactions": {
+    "dangerous": [
+      "SNRIs",
+      "Alcohol",
+      "benzodiazepine",
+      "Dextromethorphan",
+      "GHB",
+      "GBL",
+      "Ketamine",
+      "Methoxetamine",
+      "Tramadol",
+      "Grapefruit",
+      "maoi",
+      "Serotonin releasers",
+      "ssri",
+      "5-Hydroxytryptophan"
+    ],
+    "unsafe": [],
+    "uncertain": [
+      "maoi",
+      "Nitrous oxide",
+      "PCP",
+      "stimulant"
+    ]
+  },
+  "roas": [
+    {
+      "name": "oral",
+      "dose": {
+        "units": "mg",
+        "lightMin": 1,
+        "commonMin": 5,
+        "strongMin": 15,
+        "heavyMin": 30
+      },
+      "duration": {
+        "onset": {
+          "min": 20,
+          "max": 90,
+          "units": "minutes"
+        },
+        "comeup": {
+          "min": 2,
+          "max": 4,
+          "units": "hours"
+        },
+        "peak": {
+          "min": 4,
+          "max": 6,
+          "units": "hours"
+        },
+        "offset": {
+          "min": 4,
+          "max": 6,
+          "units": "hours"
+        },
+        "total": {
+          "min": 10,
+          "max": 19,
+          "units": "hours"
+        },
+        "afterglow": {
+          "min": 1,
+          "max": 24,
+          "units": "hours"
+        }
+      }
+    }
+  ],
+  "metabolism": "N-demethylation forms inactive EDDP. CYP2B6 and other CYP enzymes contribute; the label lists several enzymes rather than one exclusive pathway. Subsequent elimination is renal and fecal.",
+  "metabolismSources": [
+    "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=544483e6-6f9d-4371-9e93-313e54e0ea05"
+  ]
+}
