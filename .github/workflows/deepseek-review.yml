@@ -22,7 +22,7 @@ jobs:
       - name: DeepSeek Code Review
         # pinned from v1.21
         if: github.event_name != 'issue_comment' || github.event.comment.user.login == 'LoliLin'
-        uses: hustcer/deepseek-review@eccde2e9781008d795e366b951e313e37af88dd5
+        uses: hustcer/deepseek-review@15a228bf15e01ef1f4d195eab4febbd7809dd2ed
         with:
           temperature: 1
           chat-token: ${{ secrets.CHAT_TOKEN }}
