@@ -9,7 +9,7 @@ ksp = "2.3.12"
 androidxCore = "1.19.1"
 androidxLifecycle = "2.11.0"
 androidxActivity = "1.13.0"
-androidxComposeBom = "2026.09.00"          # 统一使用最新的 BOM
+androidxComposeBom = "2026.11.01"          # 统一使用最新的 BOM
 androidxbrowser = "1.10.0"
 
 # Hilt
